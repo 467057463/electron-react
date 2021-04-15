@@ -1,5 +1,12 @@
 import React from 'react';
 import { render } from 'react-dom';
+import { StoreProvider } from './hook/useStore';
+
 import App from './App';
 
-render(<App />, document.getElementById('root'));
+render(
+  <StoreProvider>
+    <App />
+  </StoreProvider>,
+  document.getElementById('root')
+);

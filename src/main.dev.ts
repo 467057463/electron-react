@@ -11,7 +11,7 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -56,7 +56,7 @@ const createWindow = async () => {
     process.env.NODE_ENV === 'development' ||
     process.env.DEBUG_PROD === 'true'
   ) {
-    await installExtensions();
+    // await installExtensions();
   }
 
   const RESOURCES_PATH = app.isPackaged
@@ -72,8 +72,10 @@ const createWindow = async () => {
     width: 1024,
     height: 728,
     icon: getAssetPath('icon.png'),
+    // frame: false,
     webPreferences: {
       nodeIntegration: true,
+      contextIsolation: false,
     },
   });
 
@@ -81,7 +83,18 @@ const createWindow = async () => {
 
   // @TODO: Use 'ready-to-show' event
   //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
-  mainWindow.webContents.on('did-finish-load', () => {
+  // mainWindow.webContents.on('did-finish-load', () => {
+  //   if (!mainWindow) {
+  //     throw new Error('"mainWindow" is not defined');
+  //   }
+  //   if (process.env.START_MINIMIZED) {
+  //     mainWindow.minimize();
+  //   } else {
+  //     mainWindow.show();
+  //     mainWindow.focus();
+  //   }
+  // });
+  mainWindow.once('ready-to-show', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
@@ -108,7 +121,7 @@ const createWindow = async () => {
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  new AppUpdater();
+  // new AppUpdater();
 };
 
 /**
@@ -129,4 +142,63 @@ app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) createWindow();
+});
+
+ipcMain.handle('showAboutwindow', async () => {
+  // const result = {
+  //   test: 'test',
+  // };
+  // mainWindow?.webContents.send('ping', 'woooooooooooh');
+  // console.log(mainWindow?.id);
+  // return result;
+
+  const showWin = new BrowserWindow({
+    width: 500,
+    height: 500,
+    x: 0,
+    y: 0,
+    useContentSize: true,
+    minWidth: 300,
+    minHeight: 450,
+    maxWidth: 700,
+    maxHeight: 1000,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    autoHideMenuBar: true,
+    show: false,
+    // frame: false,
+    parent: mainWindow,
+    modal: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true,
+    },
+  });
+  showWin.loadURL(`file://${__dirname}/index.html#/about`);
+
+  showWin.once('ready-to-show', () => {
+    showWin.show();
+  });
+});
+
+ipcMain.handle('upload-file', async () => {
+  const res = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+  });
+  return res;
+});
+
+ipcMain.handle('save-file', async () => {
+  const res = await dialog.showSaveDialog({});
+  return res;
+});
+
+ipcMain.handle('show-message', async () => {
+  const res = await dialog.showMessageBox({
+    type: 'info',
+    message: 'test',
+  });
+  return res;
 });
